@@ -25,6 +25,7 @@ type tunInterface struct {
     name string
     index int
     mtu int
+    sockfd uintptr
 }
 
 type ifreq_flags struct {
@@ -63,7 +64,7 @@ func newTun(ifaceName string) (TunInterface, error) {
     copy(req.ifnam[:], ifaceName)
     req.ifnam[15] = 0
     req.flags = IFF_TUN | IFF_NO_PI
-    err = ioctl(file, syscall.TUNSETIFF, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(file.Fd(), syscall.TUNSETIFF, uintptr(unsafe.Pointer(&req)))
 	if err != nil {
         println("ioctl 1 failed")
         file.Close()
@@ -76,11 +77,19 @@ func newTun(ifaceName string) (TunInterface, error) {
         file.Close()
 		return nil, err
     }
+
+    sockfd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_DGRAM, 0)
+    if err != nil {
+        file.Close()
+		return nil, err
+    }
+
 	iface := &tunInterface{ 
         file: file, 
         name: ifaceName,
         index: netif.Index,
         mtu: netif.MTU,
+        sockfd: uintptr(sockfd),
     }
 
 	return iface, nil
@@ -92,12 +101,12 @@ func (t *tunInterface) setFlags(flags uint16) error {
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
     req.flags = 0
-    err := ioctl(t.file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req)))
+    err := ioctl(t.sockfd, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
     req.flags |= flags
-    err = ioctl(t.file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(t.sockfd, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -121,7 +130,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     req.addr.sin_family = syscall.AF_INET
     copy(req.addr.sin_addr[:], ipv4[:])
     req.addr.sin_port = 0
-    err := ioctl(t.file, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
+    err := ioctl(t.sockfd, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -129,7 +138,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     req.addr.sin_family = syscall.AF_INET
     copy(req.addr.sin_addr[:], netmask4[:])
     req.addr.sin_port = 0
-    err = ioctl(t.file, syscall.SIOCSIFNETMASK, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(t.sockfd, syscall.SIOCSIFNETMASK, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -142,7 +151,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     req.addr.sin_family = syscall.AF_INET
     copy(req.addr.sin_addr[:], broadcast4[:])
     req.addr.sin_port = 0
-    err = ioctl(t.file, syscall.SIOCSIFBRDADDR, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(t.sockfd, syscall.SIOCSIFBRDADDR, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -154,7 +163,7 @@ func (t *tunInterface) SetMTU(mtu int) error {
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
     req.mtu = int32(mtu)
-    err := ioctl(t.file, syscall.SIOCSIFMTU, uintptr(unsafe.Pointer(&req)))
+    err := ioctl(t.sockfd, syscall.SIOCSIFMTU, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -170,6 +179,7 @@ func (t *tunInterface) Write(p []byte) (n int, err error) {
 }
 
 func (t *tunInterface) Close() error {
+    syscall.Close(int(t.sockfd))
     return t.file.Close()
 }
 
@@ -177,8 +187,8 @@ func (t* tunInterface) GetName() string {
     return t.name
 }
 
-func ioctl(file *os.File, cmd uint, arg uintptr) error {
-    _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), uintptr(cmd), arg)
+func ioctl(fd uintptr, cmd uint, arg uintptr) error {
+    _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(cmd), arg)
     if errno != 0 {
         return errno
     }
