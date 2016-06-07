@@ -1,4 +1,4 @@
-// + build linux
+// +build linux
 
 package tun
 
@@ -15,7 +15,11 @@ const (
 	IFF_NO_PI = 0x1000
 )
 
-type TunInterface struct {
+var (
+    _ TunInterface = &tunInterface{}
+)
+
+type tunInterface struct {
     file *os.File
     name string
 }
@@ -35,7 +39,7 @@ type ifreq_mtu struct {
     mtu int32
 }
 
-func New(ifaceName string) (*TunInterface, error) {
+func newTun(ifaceName string) (*tunInterface, error) {
     var req ifreq_flags
     var req2 ifreq_
     file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
@@ -73,12 +77,15 @@ func New(ifaceName string) (*TunInterface, error) {
 	return iface, nil
 }
 
-func (t *TunInterface) SetIPAddress(ip, broadcast net.IP) error {
+func (t *TunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error {
     var req ifreq_addr
     var req2 ifreq_flags
     ipv4 := ip.To4()
     broadcast4 := broadcast.To4()
-    if ipv4 == nil || ((broadcast != nil) && (broadcast4 == nil)){
+    netmask4 := netmask.To4()
+    if ipv4 == nil || 
+        ((broadcast != nil) && (broadcast4 == nil)) || 
+        netmask4 == nil {
         return errors.New("IPv6 not yet implemented!")
     }
     copy(req.ifnam[:], t.name)
@@ -89,6 +96,13 @@ func (t *TunInterface) SetIPAddress(ip, broadcast net.IP) error {
     if err != nil {
 		return err
 	}
+
+    copy(req.addr.Addr[:], ipv4[:])
+    err := ioctl(t.file, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
+    if err != nil {
+		return err
+	}
+
     if broadcast4 == nil {
         return 
     }
@@ -126,6 +140,19 @@ func (t *TunInterface) SetMTU(mtu int) error {
 		return err
 	}
 }
+
+func (t *TunInterface) Read(p []byte) (n int, err error) {
+    return t.file.Read(p)
+}
+
+func (t *TunInterface) Write(p []byte) (n int, err error) {
+    return t.file.Write(p)
+}
+
+func (t *TunInterface) Close() error {
+    return t.file.Close()
+}
+
 
 func ioctl(file *os.File, cmd int, arg uintptr) error {
     _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), uintptr(cmd), arg)
