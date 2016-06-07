@@ -29,10 +29,15 @@ type ifreq_flags struct {
     ifnam [16]byte
     flags uint16
 }
-
+type sockaddr_in struct {
+    sin_family int16
+    sin_port int16
+    sin_addr [4]byte
+    sin_zero [8]byte
+}
 type ifreq_addr struct {
     ifnam [16]byte
-    addr syscall.SockaddrInet4
+    addr sockaddr_in
 }
 
 type ifreq_mtu struct {
@@ -90,15 +95,20 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     }
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
-    copy(req.addr.Addr[:], ipv4[:])
-    req.addr.Port = 0
+
+
+    req.addr.sin_family = syscall.AF_INET
+    copy(req.addr.sin_addr[:], ipv4[:])
+    req.addr.sin_port = 0
     err := ioctl(t.file, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
 
-    copy(req.addr.Addr[:], ipv4[:])
-    err = ioctl(t.file, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
+    req.addr.sin_family = syscall.AF_INET
+    copy(req.addr.sin_addr[:], netmask4[:])
+    req.addr.sin_port = 0
+    err = ioctl(t.file, syscall.SIOCSIFNETMASK, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -108,7 +118,9 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     }
 
     //First set the broadcast address
-    copy(req.addr.Addr[:], broadcast4[:])
+    req.addr.sin_family = syscall.AF_INET
+    copy(req.addr.sin_addr[:], broadcast4[:])
+    req.addr.sin_port = 0
     err = ioctl(t.file, syscall.SIOCSIFBRDADDR, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
