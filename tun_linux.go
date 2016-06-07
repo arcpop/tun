@@ -98,7 +98,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
 	}
 
     copy(req.addr.Addr[:], ipv4[:])
-    err := ioctl(t.file, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(t.file, syscall.SIOCSIFADDR, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
 
     //First set the broadcast address
     copy(req.addr.Addr[:], broadcast4[:])
-    err := ioctl(t.file, syscall.SIOCSIFBRDADDR, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(t.file, syscall.SIOCSIFBRDADDR, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (t *tunInterface) SetMTU(mtu int) error {
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
     req.mtu = mtu
-    err = ioctl(file, syscall.SIOCSIFMTU, uintptr(unsafe.Pointer(&req)))
+    err := ioctl(file, syscall.SIOCSIFMTU, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
