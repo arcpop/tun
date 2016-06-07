@@ -68,18 +68,6 @@ func newTun(ifaceName string) (TunInterface, error) {
 		return nil, err
 	}
     ifaceName = strings.Trim(string(req.ifnam[:]), "\x00")
-    req.flags = 0
-    err = ioctl(file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req)))
-    if err != nil {
-        file.Close()
-		return nil, err
-	}
-    req.flags |= syscall.IFF_UP
-    err = ioctl(file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req)))
-    if err != nil {
-        file.Close()
-		return nil, err
-	}
 
     copy(req2.ifnam[:], ifaceName)
     req2.ifnam[15] = 0
@@ -98,9 +86,26 @@ func newTun(ifaceName string) (TunInterface, error) {
 	return iface, nil
 }
 
+func (t *tunInterface) setFlags(flags uint16) error {
+    var req ifreq_flags
+    
+    copy(req.ifnam[:], t.name)
+    req.ifnam[15] = 0
+    req.flags = 0
+    err := ioctl(file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req)))
+    if err != nil {
+		return nil, err
+	}
+    req.flags |= flags
+    err = ioctl(file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req)))
+    if err != nil {
+		return nil, err
+	}
+    return nil
+}
+
 func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error {
     var req ifreq_addr
-    var req2 ifreq_flags
     ipv4 := ip.To4()
     broadcast4 := broadcast.To4()
     netmask4 := netmask.To4()
@@ -130,7 +135,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
 	}
 
     if broadcast4 == nil {
-        return nil
+        return t.setFlags(syscall.IFF_UP | syscall.IFF_RUNNING)
     }
 
     //First set the broadcast address
@@ -141,21 +146,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     if err != nil {
 		return err
 	}
-
-    //Then indicate with flags that a valid broadcast address is set
-    copy(req2.ifnam[:], t.name)
-    req2.ifnam[15] = 0
-    err = ioctl(t.file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req2)))
-    if err != nil {
-		return err
-	}
-    req2.flags |= syscall.IFF_BROADCAST
-    err = ioctl(t.file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req2)))
-    if err != nil {
-		return err
-	}
-
-    return nil
+    return t.setFlags(syscall.IFF_UP | syscall.IFF_RUNNING | syscall.IFF_BROADCAST)
 }
 
 func (t *tunInterface) SetMTU(mtu int) error {
