@@ -180,7 +180,7 @@ func (t* tunInterface) GetName() string {
     return t.name
 }
 
-func ioctl(file *os.File, cmd int, arg uintptr) error {
+func ioctl(file *os.File, cmd uint, arg uintptr) error {
     _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), uintptr(cmd), arg)
     if errno != 0 {
         return errno
