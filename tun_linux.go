@@ -23,7 +23,8 @@ var (
 type tunInterface struct {
     file *os.File
     name string
-    index int32
+    index int
+    mtu int
 }
 
 type ifreq_flags struct {
@@ -53,7 +54,6 @@ type ifreq_mtu struct {
 
 func newTun(ifaceName string) (TunInterface, error) {
     var req ifreq_flags
-    var req2 ifreq_index
     file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	if err != nil {
         println("Failed to open file")
@@ -71,19 +71,16 @@ func newTun(ifaceName string) (TunInterface, error) {
 	}
     ifaceName = strings.Trim(string(req.ifnam[:]), "\x00")
     println("Interface: " + ifaceName)
-    copy(req2.ifnam[:], ifaceName)
-    req2.ifnam[15] = 0
-    err = ioctl(file, syscall.SIOCGIFINDEX, uintptr(unsafe.Pointer(&req2)))
+    netif, err := net.InterfaceByName(ifaceName)
     if err != nil {
-        println("ioctl 2 failed: " + err.Error())
         file.Close()
 		return nil, err
-	}
-
+    }
 	iface := &tunInterface{ 
         file: file, 
         name: ifaceName,
-        index: req2.index,
+        index: netif.Index,
+        mtu: netif.MTU,
     }
 
 	return iface, nil
