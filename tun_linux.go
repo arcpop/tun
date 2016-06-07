@@ -75,7 +75,7 @@ func newTun(ifaceName string) (TunInterface, error) {
     req2.ifnam[15] = 0
     err = ioctl(file, syscall.SIOCGIFINDEX, uintptr(unsafe.Pointer(&req2)))
     if err != nil {
-        println("ioctl 2 failed")
+        println("ioctl 2 failed: " + err.Error())
         file.Close()
 		return nil, err
 	}
