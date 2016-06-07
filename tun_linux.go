@@ -8,6 +8,7 @@ import (
     "net"
     "strings"
     "errors"
+    "unsafe"
 )
 const (
 	IFF_TUN   = 0x0001
@@ -68,7 +69,7 @@ func newTun(ifaceName string) (TunInterface, error) {
 		return nil, err
 	}
 
-	iface := &TunInterface{ 
+	iface := &tunInterface{ 
         file: file, 
         name: ifaceName,
     }
