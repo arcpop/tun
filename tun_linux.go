@@ -56,6 +56,7 @@ func newTun(ifaceName string) (TunInterface, error) {
     var req2 ifreq_index
     file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	if err != nil {
+        println("Failed to open file")
 		return nil, err
 	}
 
@@ -64,6 +65,7 @@ func newTun(ifaceName string) (TunInterface, error) {
     req.flags = IFF_TUN | IFF_NO_PI
     err = ioctl(file, syscall.TUNSETIFF, uintptr(unsafe.Pointer(&req)))
 	if err != nil {
+        println("ioctl 1 failed")
         file.Close()
 		return nil, err
 	}
@@ -73,6 +75,7 @@ func newTun(ifaceName string) (TunInterface, error) {
     req2.ifnam[15] = 0
     err = ioctl(file, syscall.SIOCGIFINDEX, uintptr(unsafe.Pointer(&req2)))
     if err != nil {
+        println("ioctl 2 failed")
         file.Close()
 		return nil, err
 	}
