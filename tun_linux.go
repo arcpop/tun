@@ -92,14 +92,14 @@ func (t *tunInterface) setFlags(flags uint16) error {
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
     req.flags = 0
-    err := ioctl(file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req)))
+    err := ioctl(t.file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req)))
     if err != nil {
-		return nil, err
+		return err
 	}
     req.flags |= flags
-    err = ioctl(file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req)))
+    err = ioctl(t.file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req)))
     if err != nil {
-		return nil, err
+		return err
 	}
     return nil
 }
