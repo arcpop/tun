@@ -41,7 +41,6 @@ type ifreq_mtu struct {
 
 func newTun(ifaceName string) (TunInterface, error) {
     var req ifreq_flags
-    var req2 ifreq_
     file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	if err != nil {
 		return nil, err
