@@ -104,7 +104,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
 	}
 
     if broadcast4 == nil {
-        return 
+        return nil
     }
 
     //First set the broadcast address
