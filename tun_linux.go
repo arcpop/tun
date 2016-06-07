@@ -23,6 +23,7 @@ var (
 type tunInterface struct {
     file *os.File
     name string
+    index int32
 }
 
 type ifreq_flags struct {
@@ -40,6 +41,11 @@ type ifreq_addr struct {
     addr sockaddr_in
 }
 
+type ifreq_index struct {
+    ifnam [16]byte
+    index int32
+}
+
 type ifreq_mtu struct {
     ifnam [16]byte
     mtu int32
@@ -47,6 +53,7 @@ type ifreq_mtu struct {
 
 func newTun(ifaceName string) (TunInterface, error) {
     var req ifreq_flags
+    var req2 ifreq_index
     file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
 	if err != nil {
 		return nil, err
@@ -74,9 +81,18 @@ func newTun(ifaceName string) (TunInterface, error) {
 		return nil, err
 	}
 
+    copy(req2.ifnam[:], ifaceName)
+    req2.ifnam[15] = 0
+    err = ioctl(file, syscall.SIOCGIFINDEX, uintptr(unsafe.Pointer(&req2)))
+    if err != nil {
+        file.Close()
+		return nil, err
+	}
+
 	iface := &tunInterface{ 
         file: file, 
         name: ifaceName,
+        index: req2.index
     }
 
 	return iface, nil
