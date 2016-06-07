@@ -39,7 +39,7 @@ type ifreq_mtu struct {
     mtu int32
 }
 
-func newTun(ifaceName string) (*tunInterface, error) {
+func newTun(ifaceName string) (TunInterface, error) {
     var req ifreq_flags
     var req2 ifreq_
     file, err := os.OpenFile("/dev/net/tun", os.O_RDWR, 0)
@@ -77,7 +77,7 @@ func newTun(ifaceName string) (*tunInterface, error) {
 	return iface, nil
 }
 
-func (t *TunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error {
+func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error {
     var req ifreq_addr
     var req2 ifreq_flags
     ipv4 := ip.To4()
@@ -130,7 +130,7 @@ func (t *TunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     return nil
 }
 
-func (t *TunInterface) SetMTU(mtu int) error {
+func (t *tunInterface) SetMTU(mtu int) error {
     var req ifreq_mtu
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
@@ -141,18 +141,21 @@ func (t *TunInterface) SetMTU(mtu int) error {
 	}
 }
 
-func (t *TunInterface) Read(p []byte) (n int, err error) {
+func (t *tunInterface) Read(p []byte) (n int, err error) {
     return t.file.Read(p)
 }
 
-func (t *TunInterface) Write(p []byte) (n int, err error) {
+func (t *tunInterface) Write(p []byte) (n int, err error) {
     return t.file.Write(p)
 }
 
-func (t *TunInterface) Close() error {
+func (t *tunInterface) Close() error {
     return t.file.Close()
 }
 
+func (t* tunInterface) GetName() string {
+    return t.name
+}
 
 func ioctl(file *os.File, cmd int, arg uintptr) error {
     _, _, errno := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), uintptr(cmd), arg)
