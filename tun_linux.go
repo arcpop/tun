@@ -86,7 +86,7 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     if ipv4 == nil || 
         ((broadcast != nil) && (broadcast4 == nil)) || 
         netmask4 == nil {
-        return errors.New("IPv6 not yet implemented!")
+        return errors.New("IPv6 not yet implemented")
     }
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
