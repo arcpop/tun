@@ -70,7 +70,7 @@ func newTun(ifaceName string) (TunInterface, error) {
 		return nil, err
 	}
     ifaceName = strings.Trim(string(req.ifnam[:]), "\x00")
-
+    println("Interface: " + ifaceName)
     copy(req2.ifnam[:], ifaceName)
     req2.ifnam[15] = 0
     err = ioctl(file, syscall.SIOCGIFINDEX, uintptr(unsafe.Pointer(&req2)))
