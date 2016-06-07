@@ -117,12 +117,12 @@ func (t *tunInterface) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error 
     //Then indicate with flags that a valid broadcast address is set
     copy(req2.ifnam[:], t.name)
     req2.ifnam[15] = 0
-    err = ioctl(file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req2)))
+    err = ioctl(t.file, syscall.SIOCGIFFLAGS, uintptr(unsafe.Pointer(&req2)))
     if err != nil {
 		return err
 	}
     req2.flags |= syscall.IFF_BROADCAST
-    err = ioctl(file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req2)))
+    err = ioctl(t.file, syscall.SIOCSIFFLAGS, uintptr(unsafe.Pointer(&req2)))
     if err != nil {
 		return err
 	}
@@ -134,11 +134,12 @@ func (t *tunInterface) SetMTU(mtu int) error {
     var req ifreq_mtu
     copy(req.ifnam[:], t.name)
     req.ifnam[15] = 0
-    req.mtu = mtu
-    err := ioctl(file, syscall.SIOCSIFMTU, uintptr(unsafe.Pointer(&req)))
+    req.mtu = int32(mtu)
+    err := ioctl(t.file, syscall.SIOCSIFMTU, uintptr(unsafe.Pointer(&req)))
     if err != nil {
 		return err
 	}
+    return nil
 }
 
 func (t *tunInterface) Read(p []byte) (n int, err error) {
