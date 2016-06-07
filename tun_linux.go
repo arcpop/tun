@@ -92,7 +92,7 @@ func newTun(ifaceName string) (TunInterface, error) {
 	iface := &tunInterface{ 
         file: file, 
         name: ifaceName,
-        index: req2.index
+        index: req2.index,
     }
 
 	return iface, nil
