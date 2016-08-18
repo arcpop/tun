@@ -54,7 +54,16 @@ func (t *tunWindows) SetIPAddress(ip, broadcast net.IP, netmask net.IP) error {
 }
 
 func (t *tunWindows) SetMTU(mtu int) error {
-    //HKLM\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\<guid> set MTU ->
+    //HKLM\System\CurrentControlSet\Services\Tcpip\Parameters\Interfaces\<guid> set mtu
+    k, err := registry.OpenKey(
+        registry.LOCAL_MACHINE,
+        "System\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\" + t.guid,
+        registry.SET_VALUE)
+    if err != nil {
+        return err
+    }
+    defer k.Close()
+    return k.SetDWordValue("MTU", uint32(mtu))
 }
 
 func (t *tunWindows) Write(b []byte) (int, error) {
