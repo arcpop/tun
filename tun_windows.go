@@ -22,12 +22,12 @@ type tunWindows struct {
     ready bool
 }
 
-func newTun() (TunInterface, error) {
+func newTun(name string) (TunInterface, error) {
     guid, err := getAdapterGUID()
     if err != nil {
         return nil, err
     }
-    name, err := getHumanReadableName(guid)
+    name, err = getHumanReadableName(guid)
     if err != nil {
         return nil, err
     }
